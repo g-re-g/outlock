@@ -48,24 +48,6 @@
     </div>
   </div>
 
-  <div class="api">
-    <div class="api-name"><strong>get</strong> or <strong>post</strong> /lock-with-key/{lock-id}</div>
-    <div class="api-description">
-    If <code>{lock-id}</code> is currently unlocked, lock it and return the unlocking key with a <code>200 OK</code> status code.
-    <br><br>
-    If <code>{lock-id}</code> is currently locked, return with a <code>403 Forbidden</code> status code.
-    </div>
-  </div>
-
-  <div class="api">
-    <div class="api-name"><strong>get</strong> or <strong>post</strong> /unlock-with-key/{lock-id}/{key}</div>
-    <div class="api-description">
-    If <code>{key}</code> is the correct unlocking key for <code>{lock-id}</code>, unlock it and return with a <code>200 OK</code>.
-    <br><br>
-    Otherwise, return with a <code>403 Forbidden</code> status code.
-    </div>
-  </div>
-
 </section>
 
 <footer>🌴</footer>
