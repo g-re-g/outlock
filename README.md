@@ -8,6 +8,9 @@ A [synchronization lock](https://en.wikipedia.org/wiki/Lock_(computer_science)) 
 * Maybe you want make mutexes that have to make a network call to work?
 * Maybe you have some distributed services that need to share a resource?
 
+# TODO
+* This is very much not complete and is in a good status to talk about what more needs to be done.
+
 # Development
 
  - Make sure you have ruby 3.0 or higher installed
