@@ -1,3 +1,3 @@
-require File.expand_path '../outlock.rb', __FILE__
+require File.expand_path '../main.rb', __FILE__
 
 run Sinatra::Application
