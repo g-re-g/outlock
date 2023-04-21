@@ -12,7 +12,7 @@ require 'sqlite3'
 #
 # Boot
 #
-DB_FILE = ENV['APP_ENV'] == 'test' ? 'test.db' : 'locks.db'
+DB_FILE = ENV.fetch('APP_ENV') == 'test' ? 'test.db' : 'locks.db'
 
 #
 # Public Routes
@@ -33,10 +33,7 @@ get '/status/:id', provides: %i[html json] do
     locked: locked
   }
 
-  respond_to do |format|
-    format.json { resp.to_json }
-    format.html { hash_to_html(resp) }
-  end
+  respond(resp)
 end
 
 # Get a new random lock and lock it
@@ -49,10 +46,7 @@ post '/new', provides: %i[html json] do
   db = open_db
   set_lock(db, lock_id, true)
 
-  respond_to do |format|
-    format.json { resp.to_json }
-    format.html { hash_to_html(resp) }
-  end
+  respond(resp)
 end
 
 # Get a new random lock and lock it with a key
@@ -68,13 +62,6 @@ post '/new-with-key', provides: %i[html json] do
   set_lock(db, lock_id, true, key)
 
   respond(resp)
-end
-
-def respond(resp)
-  respond_to do |format|
-    format.json { resp.to_json }
-    format.html { hash_to_html(resp) }
-  end
 end
 
 # Lock the lock
@@ -102,10 +89,7 @@ def do_lock_unlock(lock_id, set_to_locked)
       previously_locked: previously
     }
 
-    respond_to do |format|
-      format.json { resp.to_json }
-      format.html { hash_to_html(resp) }
-    end
+    respond(resp)
   end
 end
 
@@ -130,6 +114,13 @@ def hash_to_html(hash)
   doc
 end
 
+def respond(resp)
+  respond_to do |format|
+    format.json { resp.to_json }
+    format.html { hash_to_html(resp) }
+  end
+end
+
 #
 # HTTP Errors
 #
@@ -151,32 +142,30 @@ end
 
 def get_lock(db, lock_id, key = nil)
   result = db.get_first_row('SELECT id,key,locked  FROM locks WHERE id=?', [lock_id])
-  if result && result.size == 3
-    actual_key = result[1]
-    if key == actual_key
-      { id: result[0], key: result[1], locked: result[2] == 'true' }
-    else
-      :incorrect_key
-    end
+  return unless result && result.size == 3
+
+  actual_key = result[1]
+  if key == actual_key
+    { id: result[0], key: result[1], locked: result[2] == 'true' }
+  else
+    :incorrect_key
   end
 end
 
-def set_lock(db, lock_id, set_to_locked, key = nil)
+def set_lock(database, lock_id, set_to_locked, key = nil)
   previously = false
-  db.transaction do |db|
+  database.transaction do |db|
     result = get_lock(db, lock_id, key)
-    if result == :incorrect_key
-      return :incorrect_key
-    elsif result
-      previously = result[:locked]
-      if set_to_locked && previously
-        return :previously_locked
-      else
-        db.execute('UPDATE locks SET locked=? WHERE id=?', [set_to_locked.to_s, lock_id])
-      end
+    return :incorrect_key if result == :incorrect_key
+
+    if result
+      return :previously_locked if set_to_locked && result[:locked]
+
+      db.execute('UPDATE locks SET locked=? WHERE id=?', [set_to_locked.to_s, lock_id])
     else
       db.execute('INSERT INTO locks(id, locked) VALUES (?, ?)', [lock_id, set_to_locked.to_s])
     end
   end
+
   previously
 end

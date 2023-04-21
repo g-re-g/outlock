@@ -8,7 +8,6 @@ require 'sqlite3'
 module OutlockCreateDatabase
   # Creates and migrates the sqlite3 database
 
-  # rubocop:disable Metrics/MethodLength
   def self.run(db_file, loud: false)
     if File.exist?(db_file)
       abort("Database file `#{db_file}` already exists. Remove it and rerun to regenerate the database")
@@ -28,7 +27,6 @@ module OutlockCreateDatabase
 
     puts('Database created!') if loud
   end
-  # rubocop:enable all
 end
 
 # Can be run as a script

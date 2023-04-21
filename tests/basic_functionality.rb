@@ -11,7 +11,9 @@ require 'test/unit'
 require 'rack/test'
 require 'json'
 
-class OutlockTest < Test::Unit::TestCase
+# rubocop:disable Metrics/AbcSize
+# Tests for the basic functionality of outlock
+class OutlockBasicFunctionalityTest < Test::Unit::TestCase
   def setup
     CreateDatabase.run('test.db')
   end
@@ -127,3 +129,4 @@ class OutlockTest < Test::Unit::TestCase
   #   assert last_response.body.include?('Simon')
   # end
 end
+# rubocop:enable all
