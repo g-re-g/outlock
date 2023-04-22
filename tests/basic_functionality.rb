@@ -11,11 +11,11 @@ require 'test/unit'
 require 'rack/test'
 require 'json'
 
-# rubocop:disable Metrics/AbcSize
+# rubocop:disable Metrics/AbcSize, Metrics/ClassLength
 # Tests for the basic functionality of outlock
-class OutlockBasicFunctionalityTest < Test::Unit::TestCase
+class BasicFunctionalityTest < Test::Unit::TestCase
   def setup
-    CreateDatabase.run('test.db')
+    Outlock::CreateDatabase.run('test.db')
   end
 
   def teardown
@@ -32,12 +32,18 @@ class OutlockBasicFunctionalityTest < Test::Unit::TestCase
     post url, params, 'HTTP_ACCEPT' => 'application/json'
   end
 
+  #
+  # Misc enpoints
+  #
   def test_home_page_works
     get '/'
     assert last_response.ok?
     assert last_response.body.include?('Out Lock')
   end
 
+  #
+  # Single enpoint without key
+  #
   def test_post_new_html
     post '/new'
     assert last_response.ok?
@@ -50,22 +56,6 @@ class OutlockBasicFunctionalityTest < Test::Unit::TestCase
     assert last_response.ok?
     resp = JSON.parse(last_response.body)
     assert resp['id']
-  end
-
-  def test_post_new_with_key_html
-    post '/new-with-key'
-    assert last_response.ok?
-    assert last_response.body.include?('<!doctype html>')
-    assert last_response.body.include?('id')
-    assert last_response.body.include?('key')
-  end
-
-  def test_post_new_with_key_json
-    post '/new-with-key', '', 'HTTP_ACCEPT' => 'application/json'
-    assert last_response.ok?
-    resp = JSON.parse(last_response.body)
-    assert resp['id']
-    assert resp['key']
   end
 
   def test_post_lock
@@ -113,15 +103,70 @@ class OutlockBasicFunctionalityTest < Test::Unit::TestCase
   end
 
   #
-  # Multi endpoint tests
+  # Single endpoint with key
+  #
+  def test_post_new_with_key_html
+    post '/new-with-key'
+    assert last_response.ok?
+    assert last_response.body.include?('<!doctype html>')
+    assert last_response.body.include?('id')
+    assert last_response.body.include?('key')
+  end
+
+  def test_post_new_with_key_json
+    post '/new-with-key', '', 'HTTP_ACCEPT' => 'application/json'
+    assert last_response.ok?
+    resp = JSON.parse(last_response.body)
+    assert resp['id']
+    assert resp['key']
+  end
+
+  #
+  # Multi endpoint without key
   #
   def test_lock_an_already_locked_lock_json
     lock_id = 'test_lock'
     post_json "/lock/#{lock_id}"
     assert last_response.ok?
     post_json "/lock/#{lock_id}"
-    refute last_response.ok?
+    assert_equal last_response.status, 406
     assert_equal last_response.body, 'already locked'
+  end
+
+  def test_lock_and_unlock_json
+    lock_id = 'test_lock'
+    post_json "/lock/#{lock_id}"
+    assert last_response.ok?
+    resp = JSON.parse(last_response.body)
+    assert_equal resp, {
+      'id' => lock_id,
+      'previously_locked' => false
+    }
+    post_json "/unlock/#{lock_id}"
+    assert last_response.ok?
+    resp = JSON.parse(last_response.body)
+    assert_equal resp, {
+      'id' => lock_id,
+      'previously_locked' => true
+    }
+  end
+
+  #
+  # Multi endpoint with key
+  #
+  def test_new_with_key_unlock_json
+    post_json '/new-with-key'
+    resp = JSON.parse(last_response.body)
+    lock_id = resp['id']
+    key = resp['key']
+    post_json "/unlock-with-key/#{lock_id}/#{key}"
+    assert last_response.ok?
+    resp = JSON.parse(last_response.body)
+    assert_equal resp, {
+      'id' => lock_id,
+      'previously_locked' => true,
+      'key' => key
+    }
   end
 
   # def test_get_new

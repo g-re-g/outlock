@@ -12,7 +12,7 @@ require 'sqlite3'
 #
 # Boot
 #
-DB_FILE = ENV.fetch('APP_ENV') == 'test' ? 'test.db' : 'locks.db'
+DB_FILE = ENV.fetch('APP_ENV', nil) == 'test' ? 'test.db' : 'locks.db'
 
 #
 # Public Routes
@@ -55,7 +55,7 @@ post '/new-with-key', provides: %i[html json] do
   key = UUIDTools::UUID.random_create.to_s
   resp = {
     id: lock_id,
-    key: UUIDTools::UUID.random_create.to_s
+    key: key
   }
 
   db = open_db
@@ -64,19 +64,23 @@ post '/new-with-key', provides: %i[html json] do
   respond(resp)
 end
 
+post '/unlock-with-key/:id/:key', provides: %i[html json] do |lock_id, key|
+  do_lock_unlock(lock_id, false, key)
+end
+
 # Lock the lock
 post '/lock/:id', provides: %i[html json] do |lock_id|
   do_lock_unlock(lock_id, true)
 end
 
 # Unlock the lock
-do_unlock = ->(lock_id) { do_lock_unlock(lock_id, false) }
-get  '/unlock/:id', provides: %i[html json], &do_unlock
-post '/unlock/:id', provides: %i[html json], &do_unlock
+post '/unlock/:id', provides: %i[html json] do |lock_id|
+  do_lock_unlock(lock_id, false)
+end
 
-def do_lock_unlock(lock_id, set_to_locked)
+def do_lock_unlock(lock_id, set_to_locked, key = nil)
   db = open_db
-  previously = set_lock(db, lock_id, set_to_locked)
+  previously = set_lock(db, lock_id, set_to_locked, key)
 
   case previously
   when :incorrect_key
@@ -88,6 +92,7 @@ def do_lock_unlock(lock_id, set_to_locked)
       id: lock_id,
       previously_locked: previously
     }
+    resp[:key] = key if key
 
     respond(resp)
   end
@@ -161,9 +166,10 @@ def set_lock(database, lock_id, set_to_locked, key = nil)
     if result
       return :previously_locked if set_to_locked && result[:locked]
 
+      previously = result[:locked]
       db.execute('UPDATE locks SET locked=? WHERE id=?', [set_to_locked.to_s, lock_id])
     else
-      db.execute('INSERT INTO locks(id, locked) VALUES (?, ?)', [lock_id, set_to_locked.to_s])
+      db.execute('INSERT INTO locks(id, key, locked) VALUES (?, ?, ?)', [lock_id, key, set_to_locked.to_s])
     end
   end
 
