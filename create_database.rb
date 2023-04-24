@@ -4,11 +4,10 @@ require 'rubygems'
 require 'bundler/setup'
 require 'sqlite3'
 
-# Creates and migrates the sqlite3 database
+# Outlock namespace
 module Outlock
+  # Creates and migrates the sqlite3 database
   module CreateDatabase
-    # Creates and migrates the sqlite3 database
-
     def self.run(db_file, loud: false)
       if File.exist?(db_file)
         abort("Database file `#{db_file}` already exists. Remove it and rerun to regenerate the database")
