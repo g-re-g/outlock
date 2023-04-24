@@ -1,3 +1,5 @@
+![tests](https://github.com/g-re-g/outlock/actions/workflows/ruby-tests.yml/badge.svg)
+
 <img src="https://raw.githubusercontent.com/g-re-g/outlock/main/public/logo-light-square.png" width="200px">
 
 # What?
