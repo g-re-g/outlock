@@ -7,10 +7,10 @@
   <h3>How To Use</h3>
   <ul>
     <li>Available API calls are listed below.</li>
-    <li>Available request methods are listed before the path.</li>
+    <li>Available request methods are in <strong>bold</strong> before the path.</li>
     <li>API call success / failure is indicated with HTTP status codes.</li>
     <li>Information you provide in the path goes in curly brackets <code>{}</code>.
-    <li>By default all routes will return html.</li>
+    <li>By default all routes return html.</li>
     <li>If you want JSON use an <code>accept: application/json</code> header.
   </ul>
 
@@ -18,7 +18,14 @@
   <ul>
     <li>Maybe you want someone else to manage your syncronization primitives?</li>
     <li>Maybe you want mutexes that have to make a network call to work?</li>
-    <li>Maybe you have some distributed services that need to share a resource?</li>
+    <li>Maybe you have some distributed services that need to share a resource atomically?</li>
+  </ul>
+
+  <h3>Todo</h3>
+  <ul>
+    <li>Locks that expire after a timeout.</li>
+    <li>Locks that notify a consumer once they have been unlocked or timed out.</li>
+    <li>UDP and WebSockets for lower overhead locking, unlocking, and events.
   </ul>
 
   <h3>Available API Calls</h3>
@@ -26,12 +33,49 @@
   <div class="api">
     <div class="api-name"><strong>get</strong> /status/{lock-id}</div>
     <div class="api-description">
-    Returns whether <code>{lock-id}</code> is currently locked or not.
+    Returns whether <code>{lock-id}</code> is currently locked or not with a <code>200 OK</code> status code.
+    <br><br>
+    This call never fails. If a lock "doesn't exist" it is returned as unlocked.
+    </div>
+    <div class="example">
+      <strong>Example:</strong><br>
+      <pre>
+        $> curl -X GET -H "accept: application/json" -d '' outlock.greg.work/status/my-lock
+        {"id":"my-lock","locked":false}%
+      </pre>
     </div>
   </div>
 
   <div class="api">
-    <div class="api-name"><strong>get</strong> or <strong>post</strong> /lock/{lock-id}</div>
+    <div class="api-name"><strong>post</strong> /new</div>
+    <div class="api-description">
+    Generate a new random lock without a key and return it with a <code>200 OK</code> status code.
+    </div>
+    <div class="example">
+      <strong>Example:</strong><br>
+      <pre>
+        curl -X POST -H "accept: application/json" -d '' outlock.greg.work/new 
+        {"id":"6394aa24-4498-4c7f-985e-335585e5689e"}% 
+      </pre>
+    </div>
+  </div>
+
+  <div class="api">
+    <div class="api-name"><strong>post</strong> /new-with-key</div>
+    <div class="api-description">
+    Generate a new random lock with a random key and return it with a <code>200 OK</code> status code.
+    </div>
+    <div class="example">
+      <strong>Example:</strong><br>
+      <pre>
+        $> curl -X POST -H "accept: application/json" -d '' outlock.greg.work/new-with-key
+        {"id":"a4921281-6919-4383-a340-561cf5b0c105","key":"5db22c07-3330-45ea-991d-968a5a8cb229"}%  
+      </pre>
+    </div>
+  </div>
+
+  <div class="api">
+    <div class="api-name"><strong>post</strong> /lock/{lock-id}</div>
     <div class="api-description">
     If <code>{lock-id}</code> is currently unlocked, lock it and return with a <code>200 OK</code> status code.
     <br><br>
@@ -40,13 +84,32 @@
   </div>
 
   <div class="api">
-    <div class="api-name"><strong>get</strong> or <strong>post</strong> /unlock/{lock-id}</div>
+    <div class="api-name"><strong>post</strong> /unlock/{lock-id}</div>
     <div class="api-description">
     If <code>{lock-id}</code> is not locked with a key, unlock it and return with a <code>200 OK</code> status code.
     <br><br>
-    If <code>{lock-id}</code> is currently locked with a key, return with a <code>403 Forbidden</code> status code.
+    If <code>{lock-id}</code> is currently locked with a key, return with a <code>406 Not Acceptable</code> status code.
     </div>
   </div>
+
+  <div class="api">
+    <div class="api-name"><strong>post</strong> /lock-with-key/{lock-id}/{key}</div>
+    <div class="api-description">
+    If <code>{lock-id}</code> is not locked, lock it with <code>{key}</code> and return with a <code>200 OK</code> status code.
+    <br><br>
+    If <code>{lock-id}</code> is currently locked, return with a <code>403 Forbidden</code> status code.
+    </div>
+  </div>
+
+  <div class="api">
+    <div class="api-name"><strong>post</strong> /unlock-with-key/{lock-id}/{key}</div>
+    <div class="api-description">
+    If <code>{lock-id}</code> is locked with <code>{key}</code>, unlock it and return with a <code>200 OK</code> status code.
+    <br><br>
+    If <code>{lock-id}</code> is currently locked with a key, return with a <code>406 Not Acceptable</code> status code.
+    </div>
+  </div>
+  
 
 </section>
 

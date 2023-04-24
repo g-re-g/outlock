@@ -64,22 +64,22 @@ post '/new-with-key', provides: %i[html json] do
   respond(resp)
 end
 
-# TODO: combine these into one route that may or may not have a key?
-# TODO: test for nil or "" key?
+# Lock a lock with a key
 post '/unlock-with-key/:id/:key', provides: %i[html json] do |lock_id, key|
   do_lock_unlock(lock_id, false, key)
 end
 
+# Unlock a lock with a key
 post '/lock-with-key/:id/:key', provides: %i[html json] do |lock_id, key|
   do_lock_unlock(lock_id, true, key)
 end
 
-# Lock the lock
+# Lock a lock
 post '/lock/:id', provides: %i[html json] do |lock_id|
   do_lock_unlock(lock_id, true)
 end
 
-# Unlock the lock
+# Unlock a lock
 post '/unlock/:id', provides: %i[html json] do |lock_id|
   do_lock_unlock(lock_id, false)
 end
@@ -166,8 +166,10 @@ def set_lock(database, lock_id, set_to_locked, key = nil)
       return :incorrect_key unless result[:key] == key
       return :previously_locked if set_to_locked && result[:locked]
 
-      previously = result[:locked]
-      db.execute('UPDATE locks SET locked=? WHERE id=?', [set_to_locked.to_s, lock_id])
+      # If we get here we can only be both locked and in the process of unlocking
+      # so we can always remove the lock from the database.
+      previously = true
+      db.execute('DELETE from locks WHERE id=?', [lock_id])
     else
       db.execute('INSERT INTO locks(id, key, locked) VALUES (?, ?, ?)', [lock_id, key, set_to_locked.to_s])
     end

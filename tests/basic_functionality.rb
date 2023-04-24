@@ -154,11 +154,22 @@ class BasicFunctionalityTest < Test::Unit::TestCase
   end
 
   def test_post_new_with_key_json
-    post '/new-with-key', '', 'HTTP_ACCEPT' => 'application/json'
+    post_json '/new-with-key'
     assert last_response.ok?
     resp = JSON.parse(last_response.body)
     assert resp['id']
     assert resp['key']
+  end
+
+  def test_unlock_non_existent_lock_with_key
+    post_json '/unlock-with-key/test-lock/test-key'
+    assert last_response.ok?
+    resp = JSON.parse(last_response.body)
+    assert_equal resp, {
+      'id' => 'test-lock',
+      'previously_locked' => false,
+      'key' => 'test-key'
+    }
   end
 
   #
@@ -216,12 +227,12 @@ class BasicFunctionalityTest < Test::Unit::TestCase
     post_json "/unlock-with-key/#{lock_id}/bad-key"
     refute last_response.ok?
     assert_equal last_response.status, 403
-    assert_equal last_response.body, 'incorrect key'
+    assert_equal last_response.body, "incorrect key"
   end
 
   def test_lock_with_key_unlock_with_key_json
-    lock_id = 'test-lock'
-    key = 'test-key'
+    lock_id = "test-lock"
+    key = "test-key"
     post_json "/lock-with-key/#{lock_id}/#{key}"
     assert last_response.ok?
     post_json "/unlock-with-key/#{lock_id}/#{key}"
@@ -239,7 +250,7 @@ class BasicFunctionalityTest < Test::Unit::TestCase
     resp = JSON.parse(last_response.body)
     post_json "/unlock/#{resp['id']}"
     assert_equal last_response.status, 403
-    assert_equal last_response.body, 'incorrect key'
+    assert_equal last_response.body, "incorrect key"
   end
 
   # def test_get_new
