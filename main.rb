@@ -64,8 +64,14 @@ post '/new-with-key', provides: %i[html json] do
   respond(resp)
 end
 
+# TODO: combine these into one route that may or may not have a key?
+# TODO: test for nil or "" key?
 post '/unlock-with-key/:id/:key', provides: %i[html json] do |lock_id, key|
   do_lock_unlock(lock_id, false, key)
+end
+
+post '/lock-with-key/:id/:key', provides: %i[html json] do |lock_id, key|
+  do_lock_unlock(lock_id, true, key)
 end
 
 # Lock the lock
@@ -93,7 +99,6 @@ def do_lock_unlock(lock_id, set_to_locked, key = nil)
       previously_locked: previously
     }
     resp[:key] = key if key
-
     respond(resp)
   end
 end
@@ -145,25 +150,20 @@ def open_db
   SQLite3::Database.new DB_FILE
 end
 
-def get_lock(db, lock_id, key = nil)
+def get_lock(db, lock_id)
   result = db.get_first_row('SELECT id,key,locked  FROM locks WHERE id=?', [lock_id])
-  return unless result && result.size == 3
+  return nil unless result && result.size == 3
 
-  actual_key = result[1]
-  if key == actual_key
-    { id: result[0], key: result[1], locked: result[2] == 'true' }
-  else
-    :incorrect_key
-  end
+  { id: result[0], key: result[1], locked: result[2] == 'true' }
 end
 
 def set_lock(database, lock_id, set_to_locked, key = nil)
   previously = false
   database.transaction do |db|
-    result = get_lock(db, lock_id, key)
-    return :incorrect_key if result == :incorrect_key
+    result = get_lock(db, lock_id)
 
     if result
+      return :incorrect_key unless result[:key] == key
       return :previously_locked if set_to_locked && result[:locked]
 
       previously = result[:locked]
